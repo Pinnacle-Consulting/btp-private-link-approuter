@@ -14,13 +14,15 @@ The main idea of this architecture is to use the Application Router as a proxy f
 
 You can either use the **CLI** or **BTP Cockpit** to create a service instance. Below you can find sample command.
 
+>You need BTP subaccount with Microsoft Azure as provider to use this sample
+
 >Please note to replace the **resourceId** with your Azure Blob Storage resourceId
 
 ```bash
-cf cs privatelink standard privatelink-blob -c '{"requestMessage":"Please approve blob connection","resourceId":"/subscriptions/xxxxx/resourceGroups/tests-services/providers/Microsoft.Storage/storageAccounts/xxxx","subResource":"blob"}'
+cf cs privatelink standard privatelink-blob -c '{"requestMessage":"Please approve blob connection","resourceId":"/subscriptions/<your-subscription-id>/resourceGroups/<your-resource-group>/providers/Microsoft.Storage/storageAccounts/<your-storage-account>","subResource":"blob"}'
 ```
 
-After initiantion, remember to approve the connection request from **Azure Portal**
+After initiantion, remember to approve the connection request from **Azure Portal** on storage account page: Networking>Private endpoint connections
 
 
 
@@ -38,7 +40,7 @@ If you choose BAS, select **Standalone Approuter** as an option in the template 
 
 Define the route and the destination used for the SAP Private Link connectivity. This can be done in the xs-app.json file where **blob-approuter** is the destination configured for SAP Private Link connectivity in the target SAP BTP subaccount (see destination configuration below).  
 
->NOTE: Please change the **source** and **target** properties as required in your scenario (e.g. other path instead of /myfiles)
+>NOTE: Please change the **source** and **target** properties as required in your scenario (e.g. other path instead of /myfiles). In example below `myfiles` in **target** property matches container name in Azure blob service
 
  
 ```json
@@ -56,6 +58,7 @@ Define the route and the destination used for the SAP Private Link connectivity.
 }
 ```
 
+Configure destination. URL can be found on storage service page from Azure Portal (`Endpoints` section)
 ![Destination configuration](../img/destination-blob.png)
 
 
@@ -66,6 +69,13 @@ mbt build && cf deploy mta_archives/privatelink-proxy_0.0.1.mtar
 ```
 
 Once the Application Router is up and running, it can be used by your integration flows to connect with the Azure Blob Storage. 
+
+### Check blob access
+1. Upload file to your blob container
+2. Disable **Public network access** in **Network** settings of storage account on Azure Portal
+3. Generate **SAS token** for your blob container in **Shared access tokens** section
+4. Try to access file using default blob endpoint for example `<blob-endpoint>/myfiles/<uploaded-file-name>?<blob-SAS-token>`. It should not be available since **Public network access** disabled
+5. try to access file using app-router for example `<app-router-url>/myfiles/<uploaded-file-name>?<blob-SAS-token>`. It should open uploaded file since it accessed via private link
 
 ## Use the Application Router proxy in SAP Cloud Integration iFlows
 
